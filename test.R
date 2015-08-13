@@ -104,6 +104,21 @@ for(i in 7:1){
   }
 }
 
+# for(i in 1:7){
+#   for(j in 1:7){
+#     grids[i,j] <- nrow(testdata[which((min(testdata$V3) + (j-1)*v/7) < testdata$V3 & testdata$V3 < (min(testdata$V3) + j*v/7) & 
+#                                         (min(testdata$V4) + (i-1)*h/7) < testdata$V4 & testdata$V4 < (min(testdata$V4) + i*h/7)),])
+#   }
+# }
+
+noisedgrids <- matrix(0,7,7)
+for(i in 1:7){
+  for(j in 1:7){
+    noisedgrids[i,j] <- grids[i,j] + rlaplace(1, 0, 1/0.9)
+  }
+}
+
+
 grid1 <- testdata[which(testdata$V3 < (min(testdata$V3) + v/7) & 
                         testdata$V4 < (min(testdata$V4) + h/7)),]
 
