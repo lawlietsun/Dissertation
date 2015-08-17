@@ -232,3 +232,5 @@ prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
   
   return(numberOfPoint)
 }
+
+ww
