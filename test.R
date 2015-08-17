@@ -109,24 +109,16 @@ gridy = v2/m #height of each grid
 # create grids
 grids <- matrix(0,m,m)
 
-for(i in m:1){
+for(i in 1:m){
   for(j in 1:m){
     grids[i,j] <- nrow(testdata[which(
-                                      (minx + (j-1)*gridx) < testdata$V1 & 
-                                      testdata$V1 < (minx + j*gridx) & 
-                                      (miny + (m-i)*gridy) < testdata$V2 & 
-                                      testdata$V2 < (miny + (8-i)*gridy)
-                                      ),])
+      testdata$V1 > (minx + (i-1)*gridx) & 
+        testdata$V1 < (minx + i*gridx) & 
+        testdata$V2 > (miny + (j-1)*gridy) & 
+        testdata$V2 < (miny + j*gridy)
+    ),])
   }
 }
-
-# for(i in 1:m){
-#   for(j in 1:m){
-#     grids[i,j] <- nrow(testdata[which((min(testdata$V3) + (j-1)*v/m) < testdata$V3 & testdata$V3 < (min(testdata$V3) + j*v/m) & 
-#                                         (min(testdata$V4) + (i-1)*h/m) < testdata$V4 & testdata$V4 < (min(testdata$V4) + i*h/m)),])
-#   }
-# }
-
 
 # add noise
 noisedgrids <- matrix(0,m,m)
@@ -135,16 +127,6 @@ for(i in 1:m){
     noisedgrids[i,j] <- grids[i,j] + rlaplace(n = 1, mu = 0, b = 1/e)
   }
 }
-
-# 
-# grid1 <- testdata[which(testdata$V3 < (min(testdata$V3) + v/m) & 
-#                         testdata$V4 < (min(testdata$V4) + h/m)),]
-# 
-# grid2 <- testdata[which((min(testdata$V3) + 5*v/m) < testdata$V3 & testdata$V3 < (min(testdata$V3) + 6*v/m) & 
-#                           (min(testdata$V4) + 0*h/m) < testdata$V4 & testdata$V4 < (min(testdata$V4) + 1*h/m)),]
-# 
-# plot(grid2, xlim=c(min(testdata[,1]),max(testdata[,1])), 
-#             ylim=c(min(testdata[,2]),max(testdata[,2])))
 
 # draw grids
 for(i in 0:m){
@@ -163,7 +145,7 @@ abline(v = rangemaxx, col="red")
 abline(h = rangeminy, col="red")
 abline(h = rangemaxy, col="red")
 
-# range query original
+# original range query
 orq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
   results <- dataset[which(dataset$V1 > rangeminx & dataset$V1 < rangemaxx & 
                              dataset$V2 > rangeminy & dataset$V2 < rangemaxy),]
@@ -173,42 +155,80 @@ orq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
 
 # private range query
 prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
-  numberOfPoints = 0
-  i = 1
-  while(rangeminx > minx + (i-1)*gridx){
-    i = i + 1
-  }
-  gridminx = i
   
-  i = 1
-  while(rangeminy > miny + (i-1)*gridy){
-    i = i + 1
-  }
-  gridminy = i
+  gridminx = 1
+  gridminy = 1
+  gridmaxx = m
+  gridmaxy = m
   
-  j = m
-  while(rangemaxx < maxx - (m-j)*gridx){
-    j = j - 1
+  while(rangeminx > minx + (gridminx-1)*gridx){
+    gridminx = gridminx + 1
   }
-  gridmaxx = j
   
-  j = m
-  while(rangemaxy < maxy - (m-j)*gridy){
-    j = j - 1
+  while(rangeminy > miny + (gridminy-1)*gridy){
+    gridminy = gridminy + 1
   }
-  gridmaxy = j
+  
+  while(rangemaxx < maxx - (m-gridmaxx)*gridx){
+    gridmaxx = gridmaxx - 1
+  }
+  
+  while(rangemaxy < maxy - (m-gridmaxy)*gridy){
+    gridmaxy = gridmaxy - 1
+  }
+  
+  # points = 0
+  # for(x in gridminx:gridmaxx){
+  #   for(y in gridminy:gridmaxy)
+  #     points = points + grids[x,y] 
+  # }
+  
+  # topbound
+  toppoints = 0
+  for(x in gridminx:gridmaxx){
+    y = gridmaxy + 1
+    toppoints = toppoints + grids[x,y]*((rangemaxy-(miny+gridmaxy*gridy))/gridy)
+  }
+  
+  # downbound
+  downpoints = 0
+  for(x in gridminx:gridmaxx){
+    y = gridminy - 1
+    downpoints = downpoints + grids[x,y]*(((miny+gridminy*gridy)-rangeminy)/gridy)
+  }
+  
+  # left
+  leftpoints = 0
+  for(y in gridminy:gridmaxy){
+    x = gridminx - 1
+    leftpoints = leftpoints + grids[x,y]*(((minx+gridminx*gridx)-rangeminx)/gridx)
+  }
+  
+  # right
+  rightpoints = 0
+  for(y in gridminy:gridmaxy){
+    x = gridmaxx + 1
+    rightpoints = rightpoints + grids[x,y]*((rangemaxx - (minx+gridmaxx*gridx))/gridx)
+  }
+  
+  # core
+  corepoints = 0
+  for(i in gridminx:gridmaxx){
+    for(j in gridminy:gridmaxy){
+      corepoints = corepoints + grids[i,j]
+    }
+  }
+  
+  # tlcorner
+  tlpoints = (((minx+gridminx*gridx)-rangeminx)*(rangemaxy-(miny+gridmaxy*gridy)))/(gridx*gridy)
+  # trcorner
+  trpoints = ((rangemaxx-(minx+gridmaxx*gridx))*(rangemaxy-(miny+gridmaxy*gridy)))/(gridx*gridy)
+  # blcorner
+  blpoints = (((minx+gridminx*gridx)-rangeminx)*((miny+gridmaxy*gridy)-rangeminy))/(gridx*gridy)
+  # brcorner
+  brpoints = ((rangemaxx-(minx+gridmaxx*gridx))*((miny+gridmaxy*gridy)-rangeminy))/(gridx*gridy)
+  
+  numberOfPoint = tlpoints+trpoints+blpoints+brpoints+toppoints+downpoints+leftpoints+rightpoints+corepoints
+  
+  return(numberOfPoint)
 }
-
-points = 0
-for(x in gridminx:gridmaxx){
-  for(y in gridminy:gridmaxy)
-    points = points + grids[x,y] 
-}
-
-# upbound
-for(x in gridminx:gridmaxx){
-  y = gridminy
-  numberOfPoints = grids[x,y]*((rangemaxy-gridmaxy*gridy)/gridy)
-}
-
-
