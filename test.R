@@ -153,47 +153,47 @@ for(i in 0:m){
 }
 
 # test
-xmin = 0
-xmax = 60
-ymin= -50
-ymax = 100
+rangeminx = 0
+rangemaxx = 60
+rangeminy= -50
+rangemaxy = 100
 
-abline(v = xmin, col="red")
-abline(v = xmax, col="red")
-abline(h = ymin, col="red")
-abline(h = ymax, col="red")
+abline(v = rangeminx, col="red")
+abline(v = rangemaxx, col="red")
+abline(h = rangeminy, col="red")
+abline(h = rangemaxy, col="red")
 
 # range query original
-orq <- function(xmin,xmax,ymin,ymax,dataset){
-  results <- dataset[which(dataset$V1 > xmin & dataset$V1 < xmax & 
-                             dataset$V2 > ymin & dataset$V2 < ymax),]
+orq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
+  results <- dataset[which(dataset$V1 > rangeminx & dataset$V1 < rangemaxx & 
+                             dataset$V2 > rangeminy & dataset$V2 < rangemaxy),]
   numberOfPoints <- nrow(results)
   return(numberOfPoints)
 }
 
 # private range query
-prq <- function(xmin,xmax,ymin,ymax,privatedataset){
+prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
   numberOfPoints = 0
   i = 1
-  while(xmin > minx + (i-1)*gridx){
+  while(rangeminx > minx + (i-1)*gridx){
     i = i + 1
   }
   gridminx = i
   
   i = 1
-  while(ymin > miny + (i-1)*gridy){
+  while(rangeminy > miny + (i-1)*gridy){
     i = i + 1
   }
   gridminy = i
   
   j = m
-  while(xmax < maxx - (m-j)*gridx){
+  while(rangemaxx < maxx - (m-j)*gridx){
     j = j - 1
   }
   gridmaxx = j
   
   j = m
-  while(ymax < maxy - (m-j)*gridy){
+  while(rangemaxy < maxy - (m-j)*gridy){
     j = j - 1
   }
   gridmaxy = j
@@ -208,7 +208,7 @@ for(x in gridminx:gridmaxx){
 # upbound
 for(x in gridminx:gridmaxx){
   y = gridminy
-  numberOfPoints = grids[x,y]*((ymax-gridmaxy*gridy)/gridy)
+  numberOfPoints = grids[x,y]*((rangemaxy-gridmaxy*gridy)/gridy)
 }
 
 
