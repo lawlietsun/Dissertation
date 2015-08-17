@@ -201,3 +201,5 @@ for(x in gridminx:gridmaxx){
     points = points + grids[x,y] 
 }
 
+12
+
