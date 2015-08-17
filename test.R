@@ -45,17 +45,18 @@ BinSearch <- function(A, value, low, high) {
 ##############################
 
 # random sample subset the data set
-s <- sample(nrow(dataset), 5000)
+dataset <- read.table("loc-gowalla_totalCheckins.txt")
+s <- sample(nrow(dataset), 100000)
 n <- dataset[s,]
 n <- n[,3:4]
 plot(n)
 
 testdata <- n
 
-write.table(testdata, "testdata.txt", sep="\t", row.names = FALSE, col.names = FALSE)
+write.table(testdata, "testdata100000.txt", sep="\t", row.names = FALSE, col.names = FALSE)
 
 # start ##########################################################################
-testdata <- read.table("testdata.txt")
+testdata <- read.table("testdata100000.txt")
 
 # n=1000
 # x <- rchisq(n,3)
@@ -99,6 +100,7 @@ for(i in 1:m){
         testdata$V2 < (miny + j*gridy)
     ),])
   }
+  print(i)
 }
 
 # add noise
@@ -270,8 +272,8 @@ prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
 }
 
 # random query 1 D/128 ~ D/64
-x <- runif(1, 0, N/64)
-y <- runif(1, 0, N/64)
+x <- runif(1, 0, N/128)
+y <- runif(1, 0, N/128)
 randcoorminx <- runif(1,minx,maxx)
 randcoorminy <- runif(1,miny,maxy)
 randcoormaxx <- randcoorminx + x
