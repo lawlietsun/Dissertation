@@ -93,11 +93,15 @@ c = 10 # constant(can be changed)
 m <- sqrt(N*e/c) # number of grids in both coordinates
 m <- round(m,0) # 0 decimal places
 
-plot(testdata, xlim=c(min(testdata$V1),max(testdata$V1)), 
-     ylim=c(min(testdata$V2),max(testdata$V2)))
+minx <- min(testdata$V1) #minimum coordinate x
+maxx <- max(testdata$V1) #maximum coordinate x
+miny <- min(testdata$V2) #minimum coordinate y
+maxy <- max(testdata$V2) #maximum coordinate y
 
-v1 <- max(testdata$V1) - min(testdata$V1)
-v2 <- max(testdata$V2) - min(testdata$V2)
+plot(testdata, xlim=c(minx,maxx), ylim=c(miny,maxy))
+
+v1 <- maxx - minx
+v2 <- maxy - miny
 
 gridx = v1/m #length of each grid
 gridy = v2/m #height of each grid
@@ -108,10 +112,10 @@ grids <- matrix(0,m,m)
 for(i in m:1){
   for(j in 1:m){
     grids[i,j] <- nrow(testdata[which(
-                                      (min(testdata$V1) + (j-1)*gridx) < testdata$V1 & 
-                                      testdata$V1 < (min(testdata$V1) + j*gridx) & 
-                                      (min(testdata$V2) + (m-i)*gridy) < testdata$V2 & 
-                                      testdata$V2 < (min(testdata$V2) + (8-i)*gridy)
+                                      (minx + (j-1)*gridx) < testdata$V1 & 
+                                      testdata$V1 < (minx + j*gridx) & 
+                                      (miny + (m-i)*gridy) < testdata$V2 & 
+                                      testdata$V2 < (miny + (8-i)*gridy)
                                       ),])
   }
 }
@@ -144,14 +148,14 @@ for(i in 1:m){
 
 # draw grids
 for(i in 0:m){
-  abline(v = min(testdata$V1) + i*gridx)
-  abline(h = min(testdata$V2) + i*gridy)
+  abline(v = minx + i*gridx)
+  abline(h = miny + i*gridy)
 }
 
 # test
 xmin = 0
 xmax = 60
-ymin= 0
+ymin= -50
 ymax = 100
 
 abline(v = xmin, col="red")
@@ -171,25 +175,25 @@ orq <- function(xmin,xmax,ymin,ymax,dataset){
 prq <- function(xmin,xmax,ymin,ymax,privatedataset){
   numberOfPoints = 0
   i = 1
-  while(xmin > min(testdata$V1) + (i-1)*gridx){
+  while(xmin > minx + (i-1)*gridx){
     i = i + 1
   }
   gridminx = i
   
   i = 1
-  while(ymin > min(testdata$V2) + (i-1)*gridy){
+  while(ymin > miny + (i-1)*gridy){
     i = i + 1
   }
   gridminy = i
   
   j = m
-  while(xmax < max(testdata$V1) - (m-j)*gridx){
+  while(xmax < maxx - (m-j)*gridx){
     j = j - 1
   }
   gridmaxx = j
   
   j = m
-  while(ymax < max(testdata$V2) - (m-j)*gridy){
+  while(ymax < maxy - (m-j)*gridy){
     j = j - 1
   }
   gridmaxy = j
@@ -201,5 +205,10 @@ for(x in gridminx:gridmaxx){
     points = points + grids[x,y] 
 }
 
-12
+# upbound
+for(x in gridminx:gridmaxx){
+  y = gridminy
+  numberOfPoints = grids[x,y]*((ymax-gridmaxy*gridy)/gridy)
+}
+
 
