@@ -212,3 +212,5 @@ pa = prq(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset)
 oa = orq(rangeminx,rangemaxx,rangeminy,rangemaxy,testdata)
 p = 0.001*N
 relativeError = (abs(pa-oa))/max(oa,p)
+
+ee
