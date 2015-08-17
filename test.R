@@ -9,8 +9,8 @@ library(deamer) #rlaplace
 
 # x1 <- runif(10, 0, 2*pi)
 # x2 <- runif(10, 0,3)
-# x <- c(1,2,4,3,5,6,7,8,7,9)
-# y <- c(9,3,1,7,4,8,2,8,9,6)
+# x <- c(1,2,4,3,5,6,m,8,m,9)
+# y <- c(9,3,1,m,4,8,2,8,9,6)
 # d <- data.frame(x1, x2)
 # d <- data.frame(x,y)
 # plot(d)
@@ -73,23 +73,25 @@ testdata <- n
 
 write.table(testdata, "testdata.txt", sep="\t", row.names = FALSE, col.names = FALSE)
 
+# start ##########################################################################
 testdata <- read.table("testdata.txt")
 
-n=1000
-x <- rchisq(n,3)
-b=0.4 # 1/e 
-e <- rlaplace(n, 0, b)
-y <- x + e  #noisy observations with laplace noise
+# n=1000
+# x <- rchisq(n,3)
+# b=0.4 # 1/e 
+# e <- rlaplace(n, 0, b)
+# y <- x + e  #noisy observations with laplace noise
+# 
+# noise = rlaplace(1, 0, 1/0.5)
 
-noise = rlaplace(1, 0, 1/0.5)
 
-
-##################################################################
+######################
 e = 0.1 # epsilon
 N = nrow(testdata) # number of data points
 c = 10 # constant(can be changed)
 
-m <- sqrt(N*e/c) # grid size
+m <- sqrt(N*e/c) # number of grids in both coordinates
+m <- round(m,0) # 0 decimal places
 
 plot(testdata, xlim=c(min(testdata$V1),max(testdata$V1)), 
      ylim=c(min(testdata$V2),max(testdata$V2)))
@@ -97,53 +99,65 @@ plot(testdata, xlim=c(min(testdata$V1),max(testdata$V1)),
 v1 <- max(testdata$V1) - min(testdata$V1)
 v2 <- max(testdata$V2) - min(testdata$V2)
 
-# create grids
-grids <- matrix(0,7,7)
+gridx = v1/m #length of each grid
+gridy = v2/m #height of each grid
 
-for(i in 7:1){
-  for(j in 1:7){
-    grids[i,j] <- nrow(testdata[which((min(testdata$V1) + (j-1)*v1/7) < testdata$V1 & testdata$V1 < (min(testdata$V1) + j*v1/7) & 
-                                        (min(testdata$V2) + (7-i)*v2/7) < testdata$V2 & testdata$V2 < (min(testdata$V2) + (8-i)*v2/7)),])
+# create grids
+grids <- matrix(0,m,m)
+
+for(i in m:1){
+  for(j in 1:m){
+    grids[i,j] <- nrow(testdata[which(
+                                      (min(testdata$V1) + (j-1)*gridx) < testdata$V1 & 
+                                      testdata$V1 < (min(testdata$V1) + j*gridx) & 
+                                      (min(testdata$V2) + (m-i)*gridy) < testdata$V2 & 
+                                      testdata$V2 < (min(testdata$V2) + (8-i)*gridy)
+                                      ),])
   }
 }
 
-# for(i in 1:7){
-#   for(j in 1:7){
-#     grids[i,j] <- nrow(testdata[which((min(testdata$V3) + (j-1)*v/7) < testdata$V3 & testdata$V3 < (min(testdata$V3) + j*v/7) & 
-#                                         (min(testdata$V4) + (i-1)*h/7) < testdata$V4 & testdata$V4 < (min(testdata$V4) + i*h/7)),])
+# for(i in 1:m){
+#   for(j in 1:m){
+#     grids[i,j] <- nrow(testdata[which((min(testdata$V3) + (j-1)*v/m) < testdata$V3 & testdata$V3 < (min(testdata$V3) + j*v/m) & 
+#                                         (min(testdata$V4) + (i-1)*h/m) < testdata$V4 & testdata$V4 < (min(testdata$V4) + i*h/m)),])
 #   }
 # }
 
 
 # add noise
-noisedgrids <- matrix(0,7,7)
-for(i in 1:7){
-  for(j in 1:7){
-    noisedgrids[i,j] <- grids[i,j] + rlaplace(1, 0, 1/0.9)
+noisedgrids <- matrix(0,m,m)
+for(i in 1:m){
+  for(j in 1:m){
+    noisedgrids[i,j] <- grids[i,j] + rlaplace(n = 1, mu = 0, b = 1/e)
   }
 }
 
 # 
-# grid1 <- testdata[which(testdata$V3 < (min(testdata$V3) + v/7) & 
-#                         testdata$V4 < (min(testdata$V4) + h/7)),]
+# grid1 <- testdata[which(testdata$V3 < (min(testdata$V3) + v/m) & 
+#                         testdata$V4 < (min(testdata$V4) + h/m)),]
 # 
-# grid2 <- testdata[which((min(testdata$V3) + 5*v/7) < testdata$V3 & testdata$V3 < (min(testdata$V3) + 6*v/7) & 
-#                           (min(testdata$V4) + 0*h/7) < testdata$V4 & testdata$V4 < (min(testdata$V4) + 1*h/7)),]
+# grid2 <- testdata[which((min(testdata$V3) + 5*v/m) < testdata$V3 & testdata$V3 < (min(testdata$V3) + 6*v/m) & 
+#                           (min(testdata$V4) + 0*h/m) < testdata$V4 & testdata$V4 < (min(testdata$V4) + 1*h/m)),]
 # 
 # plot(grid2, xlim=c(min(testdata[,1]),max(testdata[,1])), 
 #             ylim=c(min(testdata[,2]),max(testdata[,2])))
 
 # draw grids
-for(i in 0:7){
-  abline(v = min(testdata$V1) + i*v1/7)
-  abline(h = min(testdata$V2) + i*v2/7)
+for(i in 0:m){
+  abline(v = min(testdata$V1) + i*gridx)
+  abline(h = min(testdata$V2) + i*gridy)
 }
+
+# test
+xmin = 0
+xmax = 60
+ymin= 0
+ymax = 100
 
 abline(v = xmin, col="red")
 abline(v = xmax, col="red")
 abline(h = ymin, col="red")
 abline(h = ymax, col="red")
-
 
 # range query original
 orq <- function(xmin,xmax,ymin,ymax,dataset){
@@ -157,25 +171,25 @@ orq <- function(xmin,xmax,ymin,ymax,dataset){
 prq <- function(xmin,xmax,ymin,ymax,privatedataset){
   numberOfPoints = 0
   i = 1
-  while(xmin > min(testdata$V1) + (i-1)*v1/7){
+  while(xmin > min(testdata$V1) + (i-1)*gridx){
     i = i + 1
   }
   gridminx = i
   
   i = 1
-  while(ymin > min(testdata$V2) + (i-1)*v2/7){
+  while(ymin > min(testdata$V2) + (i-1)*gridy){
     i = i + 1
   }
   gridminy = i
   
-  j = 7
-  while(xmax < max(testdata$V1) - (7-j)*v1/7){
+  j = m
+  while(xmax < max(testdata$V1) - (m-j)*gridx){
     j = j - 1
   }
   gridmaxx = j
   
-  j = 7
-  while(ymax < max(testdata$V2) - (7-j)*v2/7){
+  j = m
+  while(ymax < max(testdata$V2) - (m-j)*gridy){
     j = j - 1
   }
   gridmaxy = j
