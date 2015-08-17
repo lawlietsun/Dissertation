@@ -7,6 +7,7 @@ install.packages("deamer")
 # library(LS2Wstat)
 library(deamer) #rlaplace
 
+##############################
 # x1 <- runif(10, 0, 2*pi)
 # x2 <- runif(10, 0,3)
 # x <- c(1,2,4,3,5,6,m,8,m,9)
@@ -41,27 +42,7 @@ BinSearch <- function(A, value, low, high) {
       mid
   }
 }
-
-
-### 
-
-# tree <- list(list(1, 2), list(3, list(4, 5)))
-# 
-# 
-# ##### 1D range query algorithm #####
-# 
-# findSplitNode <- function(tree, start, end)
-# 
-# runif(20, 1,100)
-# dataset <- sample(1:10,10,replace=F)
-# sort(dataset)
-# 
-# 
-# RangeQuery_1D <- function(dataset, range)
-# {
-#   
-# }
-
+##############################
 
 # random sample subset the data set
 s <- sample(nrow(dataset), 5000)
@@ -176,13 +157,7 @@ prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
   while(rangemaxy < maxy - (m-gridmaxy)*gridy){
     gridmaxy = gridmaxy - 1
   }
-  
-  # points = 0
-  # for(x in gridminx:gridmaxx){
-  #   for(y in gridminy:gridmaxy)
-  #     points = points + grids[x,y] 
-  # }
-  
+
   # topbound
   toppoints = 0
   for(x in gridminx:gridmaxx){
@@ -232,5 +207,3 @@ prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
   
   return(numberOfPoint)
 }
-
-ww
