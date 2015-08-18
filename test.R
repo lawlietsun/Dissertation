@@ -56,7 +56,7 @@ testdata <- n
 write.table(testdata, "testdata100000.txt", sep="\t", row.names = FALSE, col.names = FALSE)
 
 # start ##########################################################################
-testdata <- read.table("testdata100000.txt")
+testdata <- read.table("testdata5000.txt")
 
 # n=1000
 # x <- rchisq(n,3)
@@ -116,17 +116,6 @@ for(i in 0:m){
   abline(v = minx + i*gridx)
   abline(h = miny + i*gridy)
 }
-
-# test
-rangeminx = 0
-rangemaxx = 60
-rangeminy= -50
-rangemaxy = 100
-
-abline(v = rangeminx, col="red")
-abline(v = rangemaxx, col="red")
-abline(h = rangeminy, col="red")
-abline(h = rangemaxy, col="red")
 
 # original range query
 orq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
@@ -206,7 +195,7 @@ prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
     toppoints = 0
     for(x in gridminx:gridmaxx){
       y = gridmaxy + 1
-      toppoints = toppoints + grids[x,y]*((rangemaxy-(miny+gridmaxy*gridy))/gridy)
+      toppoints = toppoints + privatedataset[x,y]*((rangemaxy-(miny+gridmaxy*gridy))/gridy)
     }
   }
   
@@ -215,7 +204,7 @@ prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
     downpoints = 0
     for(x in gridminx:gridmaxx){
       y = gridminy - 1
-      downpoints = downpoints + grids[x,y]*(((miny+gridminy*gridy)-rangeminy)/gridy)
+      downpoints = downpoints + privatedataset[x,y]*(((miny+gridminy*gridy)-rangeminy)/gridy)
     }
   }
   
@@ -224,7 +213,7 @@ prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
     leftpoints = 0
     for(y in gridminy:gridmaxy){
       x = gridminx - 1
-      leftpoints = leftpoints + grids[x,y]*(((minx+gridminx*gridx)-rangeminx)/gridx)
+      leftpoints = leftpoints + privatedataset[x,y]*(((minx+gridminx*gridx)-rangeminx)/gridx)
     }
   }
   
@@ -233,7 +222,7 @@ prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
     rightpoints = 0
     for(y in gridminy:gridmaxy){
       x = gridmaxx + 1
-      rightpoints = rightpoints + grids[x,y]*((rangemaxx - (minx+gridmaxx*gridx))/gridx)
+      rightpoints = rightpoints + privatedataset[x,y]*((rangemaxx - (minx+gridmaxx*gridx))/gridx)
     }
   }
   
@@ -241,29 +230,29 @@ prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
   corepoints = 0
   for(i in gridminx:gridmaxx){
     for(j in gridminy:gridmaxy){
-      corepoints = corepoints + grids[i,j]
+      corepoints = corepoints + privatedataset[i,j]
     }
   }
   
   # tlcorner
   tlpoints = 0
   if(rangeminx > minx && rangemaxy < maxy){
-    tlpoints = (((minx+gridminx*gridx)-rangeminx)*(rangemaxy-(miny+gridmaxy*gridy)))/(gridx*gridy)
+    tlpoints = ((((minx+(gridminx-1)*gridx)-rangeminx)*(rangemaxy-(miny+gridmaxy*gridy)))/(gridx*gridy))*privatedataset[gridminx-1,gridmaxy+1]
   }
   # trcorner
   trpoints = 0
   if(rangemaxx < maxx && rangemaxy < maxy){
-    trpoints = ((rangemaxx-(minx+gridmaxx*gridx))*(rangemaxy-(miny+gridmaxy*gridy)))/(gridx*gridy)
+    trpoints = (((rangemaxx-(minx+(gridmaxx)*gridx))*(rangemaxy-(miny+(gridmaxy)*gridy)))/(gridx*gridy))*privatedataset[gridmaxx+1,gridmaxy+1]
   }
   # blcorner
   blpoints = 0
   if(rangeminx > minx && rangeminy > miny){
-    blpoints = (((minx+gridminx*gridx)-rangeminx)*((miny+gridmaxy*gridy)-rangeminy))/(gridx*gridy)
+    blpoints = ((((minx+(gridminx-1)*gridx)-rangeminx)*((miny+(gridminy-1)*gridy)-rangeminy))/(gridx*gridy))*privatedataset[gridminx-1,gridminy-1]
   }
   # brcorner
   brpoints = 0
   if(rangemaxx < maxx && rangeminy > miny){
-    brpoints = ((rangemaxx-(minx+gridmaxx*gridx))*((miny+gridmaxy*gridy)-rangeminy))/(gridx*gridy)
+    brpoints = (((rangemaxx-(minx+(gridmaxx)*gridx))*((miny+(gridminy-1)*gridy)-rangeminy))/(gridx*gridy))*privatedataset[gridmaxx+1,gridminy-1]
   }
   
   numberOfPoint = tlpoints+trpoints+blpoints+brpoints+toppoints+downpoints+leftpoints+rightpoints+corepoints
@@ -272,22 +261,35 @@ prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
 }
 
 # random query 1 D/128 ~ D/64
-x <- runif(1, 0, N/128)
-y <- runif(1, 0, N/128)
+x <- runif(1, 0, N/2)
+y <- runif(1, 0, N/2)
 randcoorminx <- runif(1,minx,maxx)
 randcoorminy <- runif(1,miny,maxy)
 randcoormaxx <- randcoorminx + x
 randcoormaxy <- randcoorminy + y
 
 # relativeError
-pa = prq(randcoorminx,randcoormaxx,randcoorminy,randcoormaxy,privatedataset)
+pa = prq(randcoorminx,randcoormaxx,randcoorminy,randcoormaxy,noisedgrids)
 oa = orq(randcoorminx,randcoormaxx,randcoorminy,randcoormaxy,testdata)
 p = 0.001*N
 relativeError = (abs(pa-oa))/max(oa,p)
 relativeError
 
+privatedataset = noisedgrids
 
-rangeminx = randcoorminx
-rangemaxx = randcoormaxx
-rangeminy = randcoorminy
-rangemaxy = randcoormaxy
+randcoorminx = rangeminx
+randcoormaxx = rangemaxx
+randcoorminy = rangeminy
+randcoormaxy = rangemaxy
+
+
+# test
+rangeminx = 0
+rangemaxx = 60
+rangeminy= -50
+rangemaxy = 100
+
+abline(v = rangeminx, col="red")
+abline(v = rangemaxx, col="red")
+abline(h = rangeminy, col="red")
+abline(h = rangemaxy, col="red")
