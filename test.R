@@ -56,7 +56,7 @@ testdata <- n
 write.table(testdata, "testdata100000.txt", sep="\t", row.names = FALSE, col.names = FALSE)
 
 # start ##########################################################################
-testdata <- read.table("testdata5000.txt")
+testdata <- read.table("testdata100000.txt")
 
 # n=1000
 # x <- rchisq(n,3)
@@ -261,8 +261,8 @@ prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
 }
 
 # random query 1 D/128 ~ D/64
-x <- runif(1, 0, N/2)
-y <- runif(1, 0, N/2)
+x <- runif(1, 0, N/128)
+y <- runif(1, 0, N/128)
 randcoorminx <- runif(1,minx,maxx)
 randcoorminy <- runif(1,miny,maxy)
 randcoormaxx <- randcoorminx + x
