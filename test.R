@@ -2,10 +2,12 @@ install.packages("SearchTrees")
 install.packages("RANN")
 install.packages("LS2Wstat")
 install.packages("deamer")
+install.packages("OOmisc")
 # library(SearchTrees)
 # library(RANN)
 # library(LS2Wstat)
 library(deamer) #rlaplace
+library(OOmisc) #rlaplace
 
 ##############################
 # x1 <- runif(10, 0, 2*pi)
@@ -55,7 +57,7 @@ testdata <- n
 
 write.table(testdata, "testdata100000.txt", sep="\t", row.names = FALSE, col.names = FALSE)
 
-# start ##########################################################################
+# start ### UG #######################################################################
 testdata <- read.table("testdata100000.txt")
 
 # n=1000
@@ -68,7 +70,7 @@ testdata <- read.table("testdata100000.txt")
 
 
 ######################
-e = 0.1 # epsilon
+e = 0.01 # epsilon
 N = nrow(testdata) # number of data points
 c = 10 # constant(can be changed)
 
@@ -293,3 +295,13 @@ abline(v = rangeminx, col="red")
 abline(v = rangemaxx, col="red")
 abline(h = rangeminy, col="red")
 abline(h = rangemaxy, col="red")
+
+
+# AG ###############################################
+
+# level 1 ##########
+m1 <- max(10,abs(N*e/c)/4)
+
+
+
+# level 2 ##########
