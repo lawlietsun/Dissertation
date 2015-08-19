@@ -58,7 +58,7 @@ testdata <- n
 write.table(testdata, "testdata100000.txt", sep="\t", row.names = FALSE, col.names = FALSE)
 
 # start ### UG #######################################################################
-testdata <- read.table("testdata100000.txt")
+testdata <- read.table("testdata5000.txt")
 
 # n=1000
 # x <- rchisq(n,3)
@@ -70,12 +70,14 @@ testdata <- read.table("testdata100000.txt")
 
 
 ######################
-e = 0.01 # epsilon
-N = nrow(testdata) # number of data points
+e = 0.1 # epsilon
+a = 0.01 # very small portion of the total epsilon
+N = nrow(testdata) + rlaplace(n = 1, mu = 0, b = 1/(a*e))  # estimate number of data points
 c = 10 # constant(can be changed)
 
 m <- sqrt(N*e/c) # number of grids in both coordinates
 m <- round(m,0) # 0 decimal places
+m
 
 minx <- min(testdata$V1) #minimum coordinate x
 maxx <- max(testdata$V1) #maximum coordinate x
@@ -105,11 +107,11 @@ for(i in 1:m){
   print(i)
 }
 
-# add noise
+# add noise only has (1-a)*e privacy baget
 noisedgrids <- matrix(0,m,m)
 for(i in 1:m){
   for(j in 1:m){
-    noisedgrids[i,j] <- grids[i,j] + rlaplace(n = 1, mu = 0, b = 1/e)
+    noisedgrids[i,j] <- grids[i,j] + rlaplace(n = 1, mu = 0, b = 1/((1-a)*e))
   }
 }
 
@@ -119,7 +121,7 @@ for(i in 0:m){
   abline(h = miny + i*gridy)
 }
 
-# original range query
+# original range query ##################
 orq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
   
   if(rangeminx < minx){
@@ -144,7 +146,7 @@ orq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
   return(numberOfPoints)
 }
 
-# private range query
+# private range query ################
 prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
   
   if(rangeminx < minx){
@@ -299,14 +301,32 @@ abline(h = rangemaxy, col="red")
 
 # AG ###############################################
 
+testdata <- read.table("testdata5000.txt")
+
+N = nrow(testdata) # number of data points
+a = 0.5 # [0.2,0.6] from the paper 
+e = 0.1 # epcilon
+
 # level 1 ##########
+
+plot(testdata)
 m1 <- max(10,sqrt(N*e/c)/4)
-a = 0.5
-e = 0.1
 
 
-
-
-
+# add noise
+noisedgrids <- matrix(0,m,m)
+for(i in 1:m){
+  for(j in 1:m){
+    noisedgrids[i,j] <- grids[i,j] + rlaplace(n = 1, mu = 0, b = 1/(a*e))
+  }
+}
 
 # level 2 ##########
+m2 <- matrix(0,m,m)
+c2 = c/2
+
+for(i in 1:m){
+  for(i in 1:m){
+    m2[i,j] <- sqrt(noisedgrids[i,j]*(1-a)*e/c2)
+  }
+}
