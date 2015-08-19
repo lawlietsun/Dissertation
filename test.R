@@ -302,9 +302,9 @@ abline(h = rangemaxy, col="red")
 # AG ###############################################
 
 testdata <- read.table("testdata5000.txt")
-
-N = nrow(testdata) # number of data points
-a = 0.5 # [0.2,0.6] from the paper 
+sa = 0.01
+N = nrow(testdata) + rlaplace(n = 1, mu = 0, b = 1/(sa*e))  # estimate number of data points
+a = 0.5 # [0.2,0.6] from the paper
 e = 0.1 # epcilon
 
 # level 1 ##########
@@ -314,19 +314,19 @@ m1 <- max(10,sqrt(N*e/c)/4)
 
 
 # add noise
-noisedgrids <- matrix(0,m,m)
-for(i in 1:m){
-  for(j in 1:m){
-    noisedgrids[i,j] <- grids[i,j] + rlaplace(n = 1, mu = 0, b = 1/(a*e))
+noisedgrids <- matrix(0,m1,m1)
+for(i in 1:m1){
+  for(j in 1:m1){
+    noisedgrids[i,j] <- grids[i,j] + rlaplace(n = 1, mu = 0, b = 1/(a*(1-sa)*e))
   }
 }
 
 # level 2 ##########
-m2 <- matrix(0,m,m)
+m2 <- matrix(0,m1,m1)
 c2 = c/2
 
-for(i in 1:m){
-  for(i in 1:m){
-    m2[i,j] <- sqrt(noisedgrids[i,j]*(1-a)*e/c2)
+for(i in 1:m1){
+  for(i in 1:m1){
+    m2[i,j] <- sqrt(noisedgrids[i,j]*(1-a)*(1-sa)*e/c2)
   }
 }
