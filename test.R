@@ -514,7 +514,6 @@ abline(h = rangemaxy, col="red")
 ######################################################################
 
 
-
 n = c(2, 3, 5) 
 s = c("aa", "bb", "cc", "dd", "ee") 
 b = c(TRUE, FALSE, TRUE, FALSE, FALSE) 
