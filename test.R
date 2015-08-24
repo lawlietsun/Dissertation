@@ -347,7 +347,6 @@ v2 <- maxy - miny
 
 h = 3 #level of the full quadtree
 
-
 abline(v=minx, h=miny)
 abline(v=maxx, h=maxy)
 abline(v=minx+v1/2, h=miny+v2/2,col="red")
@@ -396,7 +395,7 @@ se <- function(dataset){
 # data decomposition based on full quadtree
 quad <- function(dataset, h){
   quaddata <- matrix(list(), nrow = h, ncol=4^(h-1))
-  quaddata[[1,1]] <- dataset
+  quaddata[[1,1]] <- list(dataset, rbind(c(minx, miny), c(maxx, maxy)))
   for(i in 2:h){
     for(j in seq(1, 4^(i-1), by=4)){
       quaddata[[i,j]] <- nw(quaddata[[i-1,(j+3)/4]])
@@ -513,8 +512,46 @@ abline(h = rangemaxy, col="red")
 
 ######################################################################
 
+minx <- min(dataset$V1)
+maxx <- max(dataset$V1)
+miny <- min(dataset$V2)
+maxy <- max(dataset$V2)
 
-n = c(2, 3, 5) 
-s = c("aa", "bb", "cc", "dd", "ee") 
-b = c(TRUE, FALSE, TRUE, FALSE, FALSE) 
-x = list(testdata, s, b)   # x contains copies of n, s, b
+quadrange <- function(minx, miny, maxx, maxy){
+  
+  datarange <- rbind(c(minx, miny), c(maxx,maxy))
+  
+  v1 <- datarange[2,1]-datarange[1,1]
+  v2 <- datarange[2,2]-datarange[1,2]
+  
+  nwrange <- rbind(c(datarange[1,1], datarange[1,2]+v2/2), 
+                   c(datarange[1,1]+v1/2,datarange[2,2]))
+  
+  nerange <- rbind(c(datarange[1,1]+v1/2, datarange[1,2]+v2/2), 
+                   c(datarange[2,1], datarange[2,2]))
+  
+  swrange <- rbind(c(datarange[1,1], datarange[1,2]), 
+                   c(datarange[1,1]+v1/2, datarange[1,2]+v2/2))
+  
+  serange <- rbind(c(datarange[1,1]+v1/2, datarange[1,2]), 
+                   c(datarange[2,1], datarange[1,2]+v2/2))
+  
+  range <- list(nwrange, nerange, swrange, serange)
+  
+  return(range)
+}
+
+fullquadrange <- function(minx, miny, maxx, maxy, h){
+  range <- matrix(list(), nrow = h, ncol = 4^(h-1))
+  range[[1,1]] <- rbind(c(minx, miny), c(maxx, maxy))
+  
+  for(i in 2:h){
+    for(j in seq(1, 4^(i-1), by = 4)){
+      range[[i,j]] <- quadrange(range[[i-1,(j+3)/4]][1,1], range[[i-1,(j+3)/4]][1,2], range[[i-1,(j+3)/4]][2,1], range[[i-1,(j+3)/4]][2,2])[[1]]
+      range[[i,j+1]] <- quadrange(range[[i-1,(j+3)/4]][1,1], range[[i-1,(j+3)/4]][1,2], range[[i-1,(j+3)/4]][2,1], range[[i-1,(j+3)/4]][2,2])[[2]]
+      range[[i,j+2]] <- quadrange(range[[i-1,(j+3)/4]][1,1], range[[i-1,(j+3)/4]][1,2], range[[i-1,(j+3)/4]][2,1], range[[i-1,(j+3)/4]][2,2])[[3]]
+      range[[i,j+3]] <- quadrange(range[[i-1,(j+3)/4]][1,1], range[[i-1,(j+3)/4]][1,2], range[[i-1,(j+3)/4]][2,1], range[[i-1,(j+3)/4]][2,2])[[4]]
+    }
+  }
+  return(range)
+}
