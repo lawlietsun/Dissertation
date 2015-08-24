@@ -299,7 +299,7 @@ abline(h = rangeminy, col="red")
 abline(h = rangemaxy, col="red")
 
 
-# AG ###############################################
+############################# AG ################################################
 
 testdata <- read.table("testdata5000.txt")
 sa = 0.01
@@ -330,3 +330,192 @@ for(i in 1:m1){
     m2[i,j] <- sqrt(noisedgrids[i,j]*(1-a)*(1-sa)*e/c2)
   }
 }
+
+
+#### PSG based on full quadtree###################################################
+testdata <- read.table("testdata5000.txt")
+
+minx <- min(testdata$V1) #minimum coordinate x
+maxx <- max(testdata$V1) #maximum coordinate x
+miny <- min(testdata$V2) #minimum coordinate y
+maxy <- max(testdata$V2) #maximum coordinate y
+
+plot(testdata, xlim=c(minx,maxx), ylim=c(miny,maxy))
+
+v1 <- maxx - minx
+v2 <- maxy - miny
+
+h = 3 #level of the full quadtree
+
+
+abline(v=minx, h=miny)
+abline(v=maxx, h=maxy)
+abline(v=minx+v1/2, h=miny+v2/2,col="red")
+
+# 4 part of the quadtree
+nw <- function(dataset){
+  nwdata <- dataset[which(
+    dataset$V1 >= min(dataset$V1) &
+      dataset$V1 <= min(dataset$V1) + (max(dataset$V1)-min(dataset$V1))/2 &
+      dataset$V2 >= min(dataset$V2) + (max(dataset$V2)-min(dataset$V2))/2 &
+      dataset$V2 <= max(dataset$V2)
+  ),]
+  return(nwdata)
+}
+
+ne <- function(dataset){
+  nedata <- dataset[which(
+    dataset$V1 > min(dataset$V1) + (max(dataset$V1)-min(dataset$V1))/2 &
+      dataset$V1 <= max(dataset$V1) &
+      dataset$V2 > min(dataset$V2) + (max(dataset$V2)-min(dataset$V2))/2 &
+      dataset$V2 <= max(dataset$V2)
+  ),]
+  return(nedata)
+}
+
+sw <- function(dataset){
+  swdata <- dataset[which(
+    dataset$V1 >= min(dataset$V1) &
+      dataset$V1 < min(dataset$V1) + (max(dataset$V1)-min(dataset$V1))/2 &
+      dataset$V2 >= min(dataset$V2) &
+      dataset$V2 < min(dataset$V2) + (max(dataset$V2)-min(dataset$V2))/2
+  ),]
+  return(swdata)
+}
+
+se <- function(dataset){
+  sedata <- dataset[which(
+    dataset$V1 >= min(dataset$V1) + (max(dataset$V1)-min(dataset$V1))/2 &
+      dataset$V1 <= max(dataset$V1) &
+      dataset$V2 >= min(dataset$V2) &
+      dataset$V2 <= min(dataset$V2) + (max(dataset$V2)-min(dataset$V2))/2
+  ),]
+  return(sedata)
+}
+
+# data decomposition based on full quadtree
+quad <- function(dataset, h){
+  quaddata <- matrix(list(), nrow = h, ncol=4^(h-1))
+  quaddata[[1,1]] <- dataset
+  for(i in 2:h){
+    for(j in seq(1, 4^(i-1), by=4)){
+      quaddata[[i,j]] <- nw(quaddata[[i-1,(j+3)/4]])
+      quaddata[[i,j+1]] <- ne(quaddata[[i-1,(j+3)/4]])
+      quaddata[[i,j+2]] <- sw(quaddata[[i-1,(j+3)/4]])
+      quaddata[[i,j+3]] <- se(quaddata[[i-1,(j+3)/4]])
+    }
+    print(j)
+  }
+  return(quaddata)
+}
+
+# generate noisetree only has count
+noisetree <- function(dataset, h, te){
+  # te - total epsilon
+  # h - height of the tree 
+  # choose epsilon
+  e <- c()
+  for(i in 1:h){
+    # e[i] <- (2^((h-i)/3))*te*((2^(1/3)-1)/(2^((h+1)/3)-1))
+    e[i] <- te/h
+  }
+  
+  # creat noise tree
+  noisetree <- matrix(0, nrow = h, ncol=4^(h-1))
+  tree <- quad(dataset, h)
+  
+  noisetree[1,1] <- nrow(tree[[1,1]]) + rlaplace(1, mu=0, b=1/e[1])
+  
+  for(i in 2:h){
+    for(j in 1:4^(i-1)){
+      noisetree[i,j] <- nrow(tree[[i,j]]) + rlaplace(1, mu=0, b=1/e[i])
+    }
+  }
+  
+  return(noisetree)
+}
+
+# private range query for psd 
+prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
+  
+  if(rangeminx < min(dataset$V1)){
+    rangeminx = min(dataset$V1)
+  }
+  
+  if(rangemaxx > max(dataset$V1)){
+    rangemaxx = max(dataset$V1)
+  }
+  
+  if(rangeminy < min(dataset$V2)){
+    rangeminy = min(dataset$V2)
+  }
+  
+  if(rangemaxy > max(dataset$V2)){
+    rangemaxy = max(dataset$V2)
+  }
+  
+  for(j in 1:4^(h-1)){
+    if(min(q[[h,j]]$V1) <= rangeminx && max(q[[h,j]]$V1) >= rangemaxx){
+      print(j)
+    }
+    if(min(q[[h,j]]$V2) <= rangeminx && max(q[[h,j]]$V2) >= rangemaxx){
+      print(j)
+    }
+  }
+  
+}
+
+# number of grids 2,4,8,16,.... because of quad tree, 
+m <- sqrt(4^(h-1))
+v1range <- max(dataset$V1)-min(dataset$V1)
+v2range <- max(dataset$V2)-min(dataset$V2)
+gridv1 <- v1range/m
+gridv2 <- v2range/m
+
+gridrange <- function(dataset, numOfGrids){
+  grids <- matrix(list(), nrow = numOfGrids, ncol = numOfGrids)
+  for(i in 1:numOfGrids){
+    for(j in 1:numOfGrids){
+      grids[[i,j]] <- rbind(c(min(dataset$V1)+(i-1)*gridv1, min(dataset$V2)+(j-1)*gridv2),
+                            c(min(dataset$V1)+i*gridv1, min(dataset$V2)+j*gridv2))
+    }
+  }
+}
+
+swintersect <- c()
+neintersect <- c()
+for(i in 1:numOfGrids){
+  for(j in 1:numOfGrids){
+    if(rangeminx >= grids[[i,j]][1,1] && rangeminy >= grids[[i,j]][1,2] &&
+       rangeminx <= grids[[i,j]][2,1] && rangeminy <= grids[[i,j]][2,2]){
+      swintersect <- (grids[[i,j]])
+    }
+    if(rangemaxx >= grids[[i,j]][1,1] && rangemaxy >= grids[[i,j]][1,2] &&
+       rangemaxx <= grids[[i,j]][2,1] && rangemaxy <= grids[[i,j]][2,2]){
+      neintersect <- (grids[[i,j]])
+    }
+  }
+}
+
+
+
+
+##### test #####################################################
+rangeminx = 0
+rangeminy = -50
+rangemaxx = 60
+rangemaxy = 100
+
+abline(v = rangeminx, col="red")
+abline(v = rangemaxx, col="red")
+abline(h = rangeminy, col="red")
+abline(h = rangemaxy, col="red")
+
+######################################################################
+
+
+
+n = c(2, 3, 5) 
+s = c("aa", "bb", "cc", "dd", "ee") 
+b = c(TRUE, FALSE, TRUE, FALSE, FALSE) 
+x = list(testdata, s, b)   # x contains copies of n, s, b
