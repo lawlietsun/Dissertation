@@ -3,11 +3,13 @@ install.packages("RANN")
 install.packages("LS2Wstat")
 install.packages("deamer")
 install.packages("OOmisc")
-# library(SearchTrees)
+install.packages("data.tree")
+library(SearchTrees)
 # library(RANN)
 # library(LS2Wstat)
 library(deamer) #rlaplace
 library(OOmisc) #rlaplace
+library(data.tree)
 
 ##############################
 # x1 <- runif(10, 0, 2*pi)
@@ -30,20 +32,6 @@ library(OOmisc) #rlaplace
 # 
 # nearest <- nn2(DATA,DATA)
 
-# BinaryTree
-BinSearch <- function(A, value, low, high) {
-  if ( high < low ) {
-    return(NULL)
-  } else {
-    mid <- floor((low + high) / 2)
-    if ( A[mid] > value )
-      BinSearch(A, value, low, mid-1)
-    else if ( A[mid] < value )
-      BinSearch(A, value, mid+1, high)
-    else
-      mid
-  }
-}
 ##############################
 
 # random sample subset the data set
@@ -290,7 +278,7 @@ randcoormaxy = rangemaxy
 # test
 rangeminx = 0
 rangemaxx = 60
-rangeminy= -50
+rangeminy= 0
 rangemaxy = 100
 
 abline(v = rangeminx, col="red")
@@ -332,7 +320,7 @@ for(i in 1:m1){
 }
 
 
-#### PSG based on full quadtree###################################################
+#### PSD based on full quadtree###################################################
 testdata <- read.table("testdata5000.txt")
 
 minx <- min(testdata$V1) #minimum coordinate x
@@ -395,7 +383,7 @@ se <- function(dataset){
 # data decomposition based on full quadtree
 quad <- function(dataset, h){
   quaddata <- matrix(list(), nrow = h, ncol=4^(h-1))
-  quaddata[[1,1]] <- list(dataset, rbind(c(minx, miny), c(maxx, maxy)))
+  quaddata[[1,1]] <- dataset
   for(i in 2:h){
     for(j in seq(1, 4^(i-1), by=4)){
       quaddata[[i,j]] <- nw(quaddata[[i-1,(j+3)/4]])
@@ -434,6 +422,9 @@ noisetree <- function(dataset, h, te){
   return(noisetree)
 }
 
+nt <- noisetree(testdata, h, 0.5)
+prqpsd(rangeminx,rangemaxx,rangeminy,rangemaxy,testdata)
+
 # private range query for psd 
 prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
   
@@ -452,65 +443,200 @@ prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
   if(rangemaxy > max(dataset$V2)){
     rangemaxy = max(dataset$V2)
   }
+
+  ft <- fullquadrange(dataset, h)
+  noisecounts = 0
+  minpt <- c()
+  maxpt <- c()
+  for(i in h){
+    for(j in 1:4^(i-1)){
+      if(rangeminx >= ft[[i,j]][1,1] && rangeminy >= ft[[i,j]][1,2]&&
+         rangeminx <= ft[[i,j]][2,1] && rangeminy <= ft[[i,j]][2,2]){
+        minpt <- rbind(minpt, c(i,j))
+      }
+      
+      if(rangemaxx >= ft[[i,j]][1,1] && rangemaxy >= ft[[i,j]][1,2]&&
+         rangemaxx <= ft[[i,j]][2,1] && rangemaxy <= ft[[i,j]][2,2]){
+        maxpt <- rbind(maxpt, c(i,j))
+      }
+    }
+  }
+  from <- ft[minpt][[1]][1,]
+  to <- ft[maxpt][[1]][2,]
+  
+########## all grids that containd and intersects with range query ####
+  allgridsinvloved <- c()
+  for(j in 1:4^(h-1)){
+    if(from[1] <= ft[[h,j]][1,1] && from[2] <= ft[[h,j]][1,2] &&
+       to[1] >= ft[[h,j]][2,1] && to[2] >= ft[[h,j]][2,2]){
+      allgridsinvloved <- rbind(allgridsinvloved, c(h,j))
+    }
+  }
+
+###########fully contained grids with minimun noised count (optimun path + any other ones)###############################
+
+  x <- c()
+  for(i in 1:h){
+    for(j in 1:4^(i-1)){
+      if(ft[[i,j]][1,1] >= rangeminx && ft[[i,j]][1,2] >= rangeminy &&
+         ft[[i,j]][2,1] <= rangemaxx && ft[[i,j]][2,2] <= rangemaxy){
+        x <- rbind(x, c(i,j))
+      }
+    }
+  }
+  
+################ edges grid ################
+  
+  fullyunitgrids <- x[which(x[,1] == h),]
+  if(!is.matrix(fullyunitgrids)){
+    fullyunitgrids <- t(as.matrix(fullyunitgrids))
+  }
+  newx <- c()
+  
+  for(i in 1:nrow(allgridsinvloved)){
+    for(j in 1:nrow(fullyunitgrids)){
+      if(allgridsinvloved[i,1] == fullyunitgrids[j,1] && allgridsinvloved[i,2] == fullyunitgrids[j,2]){
+        newx <- c(newx, i)
+      }
+    }
+  }
+  edgegrids <- allgridsinvloved[-newx,]
+  
+################ corners grid ################
+  bl <- c()
+  br <- c()
+  tl <- c()
+  tr <- c()
+  cornergrids <- c()
   
   for(j in 1:4^(h-1)){
-    if(min(q[[h,j]]$V1) <= rangeminx && max(q[[h,j]]$V1) >= rangemaxx){
-      print(j)
+    if(ft[[h,j]][1,1] < rangeminx && ft[[h,j]][1,2] < rangeminy &&
+       ft[[h,j]][2,1] > rangeminx && ft[[h,j]][2,2] > rangeminy){
+      bl <- c(h,j)
+      bl <- t(as.matrix(bl))
     }
-    if(min(q[[h,j]]$V2) <= rangeminx && max(q[[h,j]]$V2) >= rangemaxx){
-      print(j)
+    if(ft[[h,j]][1,1] < rangemaxx && ft[[h,j]][1,2] < rangeminy &&
+       ft[[h,j]][2,1] > rangemaxx && ft[[h,j]][2,2] > rangeminy){
+      br <- c(h,j)
+      br <- t(as.matrix(br))
+    }
+    if(ft[[h,j]][1,1] < rangeminx && ft[[h,j]][1,2] < rangemaxy &&
+       ft[[h,j]][2,1] > rangeminx && ft[[h,j]][2,2] > rangemaxy){
+      tl <- c(h,j)
+      tl <- t(as.matrix(tl))
+    }
+    if(ft[[h,j]][1,1] < rangemaxx && ft[[h,j]][1,2] < rangemaxy &&
+       ft[[h,j]][2,1] > rangemaxx && ft[[h,j]][2,2] > rangemaxy){
+      tr <- c(h,j)
+      tr <- t(as.matrix(tr))
     }
   }
   
-}
-
-# number of grids 2,4,8,16,.... because of quad tree, 
-m <- sqrt(4^(h-1))
-v1range <- max(dataset$V1)-min(dataset$V1)
-v2range <- max(dataset$V2)-min(dataset$V2)
-gridv1 <- v1range/m
-gridv2 <- v2range/m
-
-gridrange <- function(dataset, numOfGrids){
-  grids <- matrix(list(), nrow = numOfGrids, ncol = numOfGrids)
-  for(i in 1:numOfGrids){
-    for(j in 1:numOfGrids){
-      grids[[i,j]] <- rbind(c(min(dataset$V1)+(i-1)*gridv1, min(dataset$V2)+(j-1)*gridv2),
-                            c(min(dataset$V1)+i*gridv1, min(dataset$V2)+j*gridv2))
+  cornergrids <- rbind(tl,tr,bl,br)
+  
+################ top grids ################
+  topgrids <- c()
+  for(j in 1:4^(h-1)){
+    if(ft[[h,j]][1,2] < rangemaxy && ft[[h,j]][2,2] > rangemaxy &&
+       ft[[h,j]][1,1] > rangeminx && ft[[h,j]][2,1] < rangemaxx){
+      topgrids <- rbind(topgrids, c(h,j)) 
     }
   }
-}
-
-swintersect <- c()
-neintersect <- c()
-for(i in 1:numOfGrids){
-  for(j in 1:numOfGrids){
-    if(rangeminx >= grids[[i,j]][1,1] && rangeminy >= grids[[i,j]][1,2] &&
-       rangeminx <= grids[[i,j]][2,1] && rangeminy <= grids[[i,j]][2,2]){
-      swintersect <- (grids[[i,j]])
-    }
-    if(rangemaxx >= grids[[i,j]][1,1] && rangemaxy >= grids[[i,j]][1,2] &&
-       rangemaxx <= grids[[i,j]][2,1] && rangemaxy <= grids[[i,j]][2,2]){
-      neintersect <- (grids[[i,j]])
+  
+################ bottum grids ################
+  
+  botgrids <- c()
+  for(j in 1:4^(h-1)){
+    if(ft[[h,j]][1,2] < rangeminy && ft[[h,j]][2,2] > rangeminy &&
+       ft[[h,j]][1,1] > rangeminx && ft[[h,j]][2,1] < rangemaxx){
+      botgrids <- rbind(botgrids, c(h,j)) 
     }
   }
+
+################ left grids ################
+  
+  leftgrids <- c()
+  for(j in 1:4^(h-1)){
+    if(ft[[h,j]][1,2] > rangeminy && ft[[h,j]][2,2] < rangemaxy &&
+       ft[[h,j]][1,1] < rangeminx && ft[[h,j]][2,1] > rangeminx){
+      leftgrids <- rbind(leftgrids, c(h,j)) 
+    }
+  }
+  
+################ right grids ################
+  
+  rightgrids <- c()
+  for(j in 1:4^(h-1)){
+    if(ft[[h,j]][1,2] > rangeminy && ft[[h,j]][2,2] < rangemaxy &&
+       ft[[h,j]][1,1] < rangemaxx && ft[[h,j]][2,1] > rangemaxx){
+      rightgrids <- rbind(rightgrids, c(h,j)) 
+    }
+  }
+  
+##########fully contained grids with minimun noised count (ONLY optimun path)###############################################
+  if(nrow(x) >= 4){
+    tmp <- x[which(x[,1] != h),]
+    if(!is.matrix(tmp)){
+      tmp <- t(as.matrix(tmp))
+    }
+    parent <- tmp[,2]
+
+    n <- length(parent)
+    
+    for(l in h:1){
+      cl <- x[which(x[,1] == l),]
+      if(!is.matrix(cl)){
+        cl <- t(as.matrix(cl))
+      }
+      rmchild <- c()
+      
+      for(nodes in seq(1, 4^(h-1), by = 4)){
+        if((c(nodes, nodes+1, nodes+2,nodes+3) %in% cl[,2])[1] &&
+           (c(nodes, nodes+1, nodes+2,nodes+3) %in% cl[,2])[2] &&
+           (c(nodes, nodes+1, nodes+2,nodes+3) %in% cl[,2])[3] &&
+           (c(nodes, nodes+1, nodes+2,nodes+3) %in% cl[,2])[4]){
+          rmchild <- rbind(rmchild, cl[which(cl[,2] == nodes:(nodes+3)),])
+        }
+      }
+      
+      if(!is.null(nrow(rmchild))){
+        newx <- c()
+        for(i in 1:nrow(x)){
+          for(j in 1:nrow(rmchild)){
+            if(x[i,1] == rmchild[j,1] && x[i,2] == rmchild[j,2]){
+              newx <- c(newx, i)
+            }
+          }
+        }
+        x <- x[-newx,]
+      }
+    }
+  }
+####sum up the noise count for fully contained grids ################################################################
+ 
+  for(i in 1:nrow(x)){
+    noisecounts = noisecounts + nt[x[i,1],x[i,2]]
+  }
+  
+  return(noisecounts)
 }
-
-
 
 
 ##### test #####################################################
 rangeminx = 0
-rangeminy = -50
+rangeminy = 0
 rangemaxx = 60
 rangemaxy = 100
+rangemaxx = maxx
+rangemaxy = maxy
+rangeminy = miny
 
 abline(v = rangeminx, col="red")
 abline(v = rangemaxx, col="red")
 abline(h = rangeminy, col="red")
 abline(h = rangemaxy, col="red")
 
-######################################################################
+####get range of all grids at each level######################################
 
 minx <- min(dataset$V1)
 maxx <- max(dataset$V1)
@@ -541,7 +667,13 @@ quadrange <- function(minx, miny, maxx, maxy){
   return(range)
 }
 
-fullquadrange <- function(minx, miny, maxx, maxy, h){
+fullquadrange <- function(dataset, h){
+  
+  minx <- min(dataset$V1)
+  maxx <- max(dataset$V1)
+  miny <- min(dataset$V2)
+  maxy <- max(dataset$V2)
+  
   range <- matrix(list(), nrow = h, ncol = 4^(h-1))
   range[[1,1]] <- rbind(c(minx, miny), c(maxx, maxy))
   
@@ -555,3 +687,20 @@ fullquadrange <- function(minx, miny, maxx, maxy, h){
   }
   return(range)
 }
+
+######################################################################
+
+
+
+root <- Node$new("root")
+a <- root$AddChild("1")
+b <- root$AddChild("2")
+c <- root$AddChild("3")
+d <- root$AddChild("4")
+
+root$Set(q[[1]])
+
+tree = createTree(testdata,treeType = "quad", maxDepth = 2)
+inrect <- rectLookup(tree, xlim = c(-40,0), ylim=c(-150, -40))
+testdata[inrect,]
+rect(-40, -150, 0, -40,lwd=1)
