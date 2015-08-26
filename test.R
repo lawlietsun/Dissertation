@@ -1,38 +1,19 @@
+##### Packages ####################
+
 install.packages("SearchTrees")
 install.packages("RANN")
 install.packages("LS2Wstat")
 install.packages("deamer")
 install.packages("OOmisc")
 install.packages("data.tree")
-library(SearchTrees)
+# library(SearchTrees)
 # library(RANN)
 # library(LS2Wstat)
 library(deamer) #rlaplace
 library(OOmisc) #rlaplace
-library(data.tree)
+# library(data.tree)
 
-##############################
-# x1 <- runif(10, 0, 2*pi)
-# x2 <- runif(10, 0,3)
-# x <- c(1,2,4,3,5,6,m,8,m,9)
-# y <- c(9,3,1,m,4,8,2,8,9,6)
-# d <- data.frame(x1, x2)
-# d <- data.frame(x,y)
-# plot(d)
-# abline(v = median(d$x))
-# d1 <- d[which(d$x > median(d$x)),]
-# d2 <- d[which(d$x <= median(d$x)),]
-# abline(h = median(d1$y))
-# abline(h = median(d2$y))
-# 
-# d = cbind(x,y)
-# tree = createTree(d)
-# inrect = rectLookup(tree, xlim = c(0,5), ylim=c(0, 5))
-# 
-# 
-# nearest <- nn2(DATA,DATA)
-
-##############################
+##### Data Sampling, Input and Plot ####################
 
 # random sample subset the data set
 dataset <- read.table("loc-gowalla_totalCheckins.txt")
@@ -45,19 +26,35 @@ testdata <- n
 
 write.table(testdata, "testdata100000.txt", sep="\t", row.names = FALSE, col.names = FALSE)
 
-# start ### UG #######################################################################
+##### Original Range Query ####################
+orq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
+  
+  if(rangeminx < minx){
+    rangeminx = minx
+  }
+  
+  if(rangemaxx > maxx){
+    rangemaxx = maxx
+  }
+  
+  if(rangeminy < miny){
+    rangeminy = miny
+  }
+  
+  if(rangemaxy > maxy){
+    rangemaxy = maxy
+  }
+  
+  results <- dataset[which(dataset$V1 > rangeminx & dataset$V1 < rangemaxx & 
+                             dataset$V2 > rangeminy & dataset$V2 < rangemaxy),]
+  numberOfPoints <- nrow(results)
+  return(numberOfPoints)
+}
+
+#################### UG ####################
+
 testdata <- read.table("testdata5000.txt")
 
-# n=1000
-# x <- rchisq(n,3)
-# b=0.4 # 1/e 
-# e <- rlaplace(n, 0, b)
-# y <- x + e  #noisy observations with laplace noise
-# 
-# noise = rlaplace(1, 0, 1/0.5)
-
-
-######################
 e = 0.1 # epsilon
 a = 0.01 # very small portion of the total epsilon
 N = nrow(testdata) + rlaplace(n = 1, mu = 0, b = 1/(a*e))  # estimate number of data points
@@ -109,32 +106,7 @@ for(i in 0:m){
   abline(h = miny + i*gridy)
 }
 
-# original range query ##################
-orq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
-  
-  if(rangeminx < minx){
-    rangeminx = minx
-  }
-  
-  if(rangemaxx > maxx){
-    rangemaxx = maxx
-  }
-  
-  if(rangeminy < miny){
-    rangeminy = miny
-  }
-  
-  if(rangemaxy > maxy){
-    rangemaxy = maxy
-  }
-  
-  results <- dataset[which(dataset$V1 > rangeminx & dataset$V1 < rangemaxx & 
-                             dataset$V2 > rangeminy & dataset$V2 < rangemaxy),]
-  numberOfPoints <- nrow(results)
-  return(numberOfPoints)
-}
-
-# private range query ################
+##### Private Range Query For UG ####################
 prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
   
   if(rangeminx < minx){
@@ -252,30 +224,28 @@ prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
   return(numberOfPoint)
 }
 
-# random query 1 D/128 ~ D/64
+##### Random Query 1 D/128 ~ D/64 ####################
 x <- runif(1, 0, N/128)
 y <- runif(1, 0, N/128)
+
 randcoorminx <- runif(1,minx,maxx)
 randcoorminy <- runif(1,miny,maxy)
 randcoormaxx <- randcoorminx + x
 randcoormaxy <- randcoorminy + y
-
-# relativeError
-pa = prq(randcoorminx,randcoormaxx,randcoorminy,randcoormaxy,noisedgrids)
-oa = orq(randcoorminx,randcoormaxx,randcoorminy,randcoormaxy,testdata)
-p = 0.001*N
-relativeError = (abs(pa-oa))/max(oa,p)
-relativeError
-
-privatedataset = noisedgrids
 
 randcoorminx = rangeminx
 randcoormaxx = rangemaxx
 randcoorminy = rangeminy
 randcoormaxy = rangemaxy
 
+##### RelativeError ####################
+pa = prq(randcoorminx,randcoormaxx,randcoorminy,randcoormaxy,noisedgrids)
+oa = orq(randcoorminx,randcoormaxx,randcoorminy,randcoormaxy,testdata)
+p = 0.001*N
+relativeError = (abs(pa-oa))/max(oa,p)
+relativeError
 
-# test
+##### TEST ####################
 rangeminx = 0
 rangemaxx = 60
 rangeminy= 0
@@ -286,8 +256,7 @@ abline(v = rangemaxx, col="red")
 abline(h = rangeminy, col="red")
 abline(h = rangemaxy, col="red")
 
-
-############################# AG ################################################
+#################### AG #################### 
 
 testdata <- read.table("testdata5000.txt")
 sa = 0.01
@@ -295,7 +264,7 @@ N = nrow(testdata) + rlaplace(n = 1, mu = 0, b = 1/(sa*e))  # estimate number of
 a = 0.5 # [0.2,0.6] from the paper
 e = 0.1 # epcilon
 
-# level 1 ##########
+##### AG level 1 ####################
 
 plot(testdata)
 m1 <- max(10,sqrt(N*e/c)/4)
@@ -309,7 +278,7 @@ for(i in 1:m1){
   }
 }
 
-# level 2 ##########
+##### AG level 2 ####################
 m2 <- matrix(0,m1,m1)
 c2 = c/2
 
@@ -319,8 +288,7 @@ for(i in 1:m1){
   }
 }
 
-
-#### PSD based on full quadtree###################################################
+#################### PSD Based On Full Quadtree #################### 
 testdata <- read.table("testdata5000.txt")
 
 minx <- min(testdata$V1) #minimum coordinate x
@@ -339,7 +307,7 @@ abline(v=minx, h=miny)
 abline(v=maxx, h=maxy)
 abline(v=minx+v1/2, h=miny+v2/2,col="red")
 
-# 4 part of the quadtree
+##### 4 Part Of The Quadtree #################### 
 nw <- function(dataset){
   nwdata <- dataset[which(
     dataset$V1 >= min(dataset$V1) &
@@ -380,7 +348,7 @@ se <- function(dataset){
   return(sedata)
 }
 
-# data decomposition based on full quadtree
+##### Data Decomposition Based On Full Quadtree #################### 
 quad <- function(dataset, h){
   quaddata <- matrix(list(), nrow = h, ncol=4^(h-1))
   quaddata[[1,1]] <- dataset
@@ -396,7 +364,7 @@ quad <- function(dataset, h){
   return(quaddata)
 }
 
-# generate noisetree only has count
+##### Generate Noisetree (only has count) #################### 
 noisetree <- function(dataset, h, te){
   # te - total epsilon
   # h - height of the tree 
@@ -422,15 +390,7 @@ noisetree <- function(dataset, h, te){
   return(noisetree)
 }
 
-nt <- noisetree(testdata, h, 0.5)
-m <- sqrt(4^(h-1))
-gridv1 <- (max(testdata$V1) - min(testdata$V1))/m
-gridv2 <- (max(testdata$V2) - min(testdata$V2))/m
-  
-prqpsd(rangeminx,rangemaxx,rangeminy,rangemaxy,testdata) #private
-orq(rangeminx,rangemaxx,rangeminy,rangemaxy,testdata) #original
-
-# private range query for psd 
+##### Private Range Query For PSD ####################
 prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
   
   if(rangeminx < min(dataset$V1)){
@@ -469,7 +429,7 @@ prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
   from <- ft[minpt][[1]][1,]
   to <- ft[maxpt][[1]][2,]
   
-########## all grids that containd and intersects with range query ####
+########## all grids that containd and intersects with range query
   allgridsinvloved <- c()
   for(j in 1:4^(h-1)){
     if(from[1] <= ft[[h,j]][1,1] && from[2] <= ft[[h,j]][1,2] &&
@@ -478,7 +438,7 @@ prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
     }
   }
 
-###########fully contained grids with minimun noised count (optimun path + any other ones)###############################
+########## fully contained grids with minimun noised count (optimun path + any other ones)
 
   x <- c()
   for(i in 1:h){
@@ -490,7 +450,7 @@ prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
     }
   }
   
-################ edges grid ################
+########## edges grid
   
   fullyunitgrids <- x[which(x[,1] == h),]
   if(!is.matrix(fullyunitgrids)){
@@ -507,7 +467,7 @@ prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
   }
   edgegrids <- allgridsinvloved[-newx,]
   
-################ corners grid ################
+########## corners grid
   bl <- c()
   br <- c()
   tl <- c()
@@ -548,7 +508,7 @@ prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
   cornergrids <- rbind(tl,tr,bl,br)
   noisedcorners = trnoisecount+tlnoisecount+brnoisecount+blnoisecount
   
-################ top grids ################
+########## top grids
   topgrids <- c()
   topnoisecount = 0
   for(j in 1:4^(h-1)){
@@ -559,7 +519,7 @@ prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
     }
   }
   
-################ bottum grids ################
+########## bottum grids
   
   botgrids <- c()
   botnoisecount = 0
@@ -571,7 +531,7 @@ prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
     }
   }
 
-################ left grids ################
+########## left grids
   
   leftgrids <- c()
   leftnoisecount = 0
@@ -583,7 +543,7 @@ prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
     }
   }
   
-################ right grids ################
+########## right grids
   
   rightgrids <- c()
   rightnoisecount = 0
@@ -597,7 +557,7 @@ prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
   
   foursidenoisecount = rightnoisecount+leftnoisecount+topnoisecount+botnoisecount
   
-##########fully contained grids with minimun noised count (ONLY optimun path)###############################################
+########## fully contained grids with minimun noised count (ONLY optimun path)
   if(nrow(x) >= 4){
     tmp <- x[which(x[,1] != h),]
     if(!is.matrix(tmp)){
@@ -636,7 +596,8 @@ prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
       }
     }
   }
-####sum up the noise count for fully contained grids ################################################################
+  
+##########  sum up the noise count for fully contained grids 
  
   for(i in 1:nrow(x)){
     noisecounts = noisecounts + nt[x[i,1],x[i,2]]
@@ -647,22 +608,7 @@ prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
   return(totalnoisecounts)
 }
 
-
-##### test #####################################################
-rangeminx = 0
-rangeminy = 0
-rangemaxx = 60
-rangemaxy = 100
-rangemaxx = maxx
-rangemaxy = maxy
-rangeminy = miny
-
-abline(v = rangeminx, col="red")
-abline(v = rangemaxx, col="red")
-abline(h = rangeminy, col="red")
-abline(h = rangemaxy, col="red")
-
-####get range of all grids at each level######################################
+##### get range of all grids at each level ####################
 
 minx <- min(dataset$V1)
 maxx <- max(dataset$V1)
@@ -714,19 +660,23 @@ fullquadrange <- function(dataset, h){
   return(range)
 }
 
-######################################################################
+##### TEST ####################
 
+rangeminx = 0
+rangeminy = 0
+rangemaxx = 60
+rangemaxy = 100
 
+abline(v = rangeminx, col="red")
+abline(v = rangemaxx, col="red")
+abline(h = rangeminy, col="red")
+abline(h = rangemaxy, col="red")
 
-root <- Node$new("root")
-a <- root$AddChild("1")
-b <- root$AddChild("2")
-c <- root$AddChild("3")
-d <- root$AddChild("4")
+h = 6
+nt <- noisetree(testdata, h, 0.5)
+m <- sqrt(4^(h-1))
+gridv1 <- (max(testdata$V1) - min(testdata$V1))/m
+gridv2 <- (max(testdata$V2) - min(testdata$V2))/m
 
-root$Set(q[[1]])
-
-tree = createTree(testdata,treeType = "quad", maxDepth = 2)
-inrect <- rectLookup(tree, xlim = c(-40,0), ylim=c(-150, -40))
-testdata[inrect,]
-rect(-40, -150, 0, -40,lwd=1)
+prqpsd(rangeminx,rangemaxx,rangeminy,rangemaxy,testdata) #private
+orq(rangeminx,rangemaxx,rangeminy,rangemaxy,testdata) #original
