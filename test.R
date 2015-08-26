@@ -423,6 +423,10 @@ noisetree <- function(dataset, h, te){
 }
 
 nt <- noisetree(testdata, h, 0.5)
+m <- sqrt(4^(h-1))
+gridv1 <- (max(testdata$V1) - min(testdata$V1))/m
+gridv2 <- (max(testdata$V2) - min(testdata$V2))/m
+  
 prqpsd(rangeminx,rangemaxx,rangeminy,rangemaxy,testdata)
 
 # private range query for psd 
@@ -514,64 +518,83 @@ prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
        ft[[h,j]][2,1] > rangeminx && ft[[h,j]][2,2] > rangeminy){
       bl <- c(h,j)
       bl <- t(as.matrix(bl))
+      blfrac = (ft[[h,j]][2,1]-rangeminx)*(ft[[h,j]][2,2]-rangeminy)/(gridv1*gridv2)
+      blnoisecount = blfrac*nt[h,j]
     }
     if(ft[[h,j]][1,1] < rangemaxx && ft[[h,j]][1,2] < rangeminy &&
        ft[[h,j]][2,1] > rangemaxx && ft[[h,j]][2,2] > rangeminy){
       br <- c(h,j)
       br <- t(as.matrix(br))
+      brfrac = (rangemaxx-ft[[h,j]][1,1])*(rangeminy-ft[[h,j]][1,2])/(gridv1*gridv2)
+      brnoisecount = brfrac*nt[h,j]
     }
     if(ft[[h,j]][1,1] < rangeminx && ft[[h,j]][1,2] < rangemaxy &&
        ft[[h,j]][2,1] > rangeminx && ft[[h,j]][2,2] > rangemaxy){
       tl <- c(h,j)
       tl <- t(as.matrix(tl))
+      tlfrac = (ft[[h,j]][2,1]-rangeminx)*(rangemaxy-ft[[h,j]][1,2])/(gridv1*gridv2)
+      tlnoisecount = tlfrac*nt[h,j]
     }
     if(ft[[h,j]][1,1] < rangemaxx && ft[[h,j]][1,2] < rangemaxy &&
        ft[[h,j]][2,1] > rangemaxx && ft[[h,j]][2,2] > rangemaxy){
       tr <- c(h,j)
       tr <- t(as.matrix(tr))
+      trfrac = (rangemaxx-ft[[h,j]][1,1])*(rangemaxy-ft[[h,j]][1,2])/(gridv1*gridv2)
+      trnoisecount = trfrac*nt[h,j]
     }
   }
   
   cornergrids <- rbind(tl,tr,bl,br)
+  noisedcorners = trnoisecount+tlnoisecount+brnoisecount+blnoisecount
   
 ################ top grids ################
   topgrids <- c()
+  topnoisecount = 0
   for(j in 1:4^(h-1)){
     if(ft[[h,j]][1,2] < rangemaxy && ft[[h,j]][2,2] > rangemaxy &&
        ft[[h,j]][1,1] > rangeminx && ft[[h,j]][2,1] < rangemaxx){
-      topgrids <- rbind(topgrids, c(h,j)) 
+      topgrids <- rbind(topgrids, c(h,j))
+      topnoisecount = topnoisecount+((rangemaxy-ft[[h,j]][1,2])/gridv2)*nt[h,j]
     }
   }
   
 ################ bottum grids ################
   
   botgrids <- c()
+  botnoisecount = 0
   for(j in 1:4^(h-1)){
     if(ft[[h,j]][1,2] < rangeminy && ft[[h,j]][2,2] > rangeminy &&
        ft[[h,j]][1,1] > rangeminx && ft[[h,j]][2,1] < rangemaxx){
       botgrids <- rbind(botgrids, c(h,j)) 
+      botnoisecount = botnoisecount+((ft[[h,j]][2,2]-rangeminy)/gridv2)*nt[h,j]
     }
   }
 
 ################ left grids ################
   
   leftgrids <- c()
+  leftnoisecount = 0
   for(j in 1:4^(h-1)){
     if(ft[[h,j]][1,2] > rangeminy && ft[[h,j]][2,2] < rangemaxy &&
        ft[[h,j]][1,1] < rangeminx && ft[[h,j]][2,1] > rangeminx){
-      leftgrids <- rbind(leftgrids, c(h,j)) 
+      leftgrids <- rbind(leftgrids, c(h,j))
+      leftnoisecount = leftnoisecount+((ft[[h,j]][2,1]-rangeminx)/gridv1)*nt[h,j]
     }
   }
   
 ################ right grids ################
   
   rightgrids <- c()
+  rightnoisecount = 0
   for(j in 1:4^(h-1)){
     if(ft[[h,j]][1,2] > rangeminy && ft[[h,j]][2,2] < rangemaxy &&
        ft[[h,j]][1,1] < rangemaxx && ft[[h,j]][2,1] > rangemaxx){
-      rightgrids <- rbind(rightgrids, c(h,j)) 
+      rightgrids <- rbind(rightgrids, c(h,j))
+      rightnoisecount = rightnoisecount+((rangemaxx-ft[[h,j]][1,1])/gridv1)*nt[h,j]
     }
   }
+  
+  foursidenoisecount = rightnoisecount+leftnoisecount+topnoisecount+botnoisecount
   
 ##########fully contained grids with minimun noised count (ONLY optimun path)###############################################
   if(nrow(x) >= 4){
@@ -618,7 +641,9 @@ prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
     noisecounts = noisecounts + nt[x[i,1],x[i,2]]
   }
   
-  return(noisecounts)
+  totalnoisecounts = noisecounts+noisedcorners+foursidenoisecount
+  
+  return(totalnoisecounts)
 }
 
 
