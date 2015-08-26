@@ -27,6 +27,7 @@ testdata <- n
 write.table(testdata, "testdata100000.txt", sep="\t", row.names = FALSE, col.names = FALSE)
 
 ##### Original Range Query ####################
+
 orq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
   
   if(rangeminx < minx){
@@ -107,6 +108,7 @@ for(i in 0:m){
 }
 
 ##### Private Range Query For UG ####################
+
 prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
   
   if(rangeminx < minx){
@@ -225,6 +227,7 @@ prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
 }
 
 ##### Random Query 1 D/128 ~ D/64 ####################
+
 x <- runif(1, 0, N/128)
 y <- runif(1, 0, N/128)
 
@@ -239,6 +242,7 @@ randcoorminy = rangeminy
 randcoormaxy = rangemaxy
 
 ##### RelativeError ####################
+
 pa = prq(randcoorminx,randcoormaxx,randcoorminy,randcoormaxy,noisedgrids)
 oa = orq(randcoorminx,randcoormaxx,randcoorminy,randcoormaxy,testdata)
 p = 0.001*N
@@ -246,6 +250,7 @@ relativeError = (abs(pa-oa))/max(oa,p)
 relativeError
 
 ##### TEST ####################
+
 rangeminx = 0
 rangemaxx = 60
 rangeminy= 0
@@ -279,6 +284,7 @@ for(i in 1:m1){
 }
 
 ##### AG level 2 ####################
+
 m2 <- matrix(0,m1,m1)
 c2 = c/2
 
@@ -289,6 +295,7 @@ for(i in 1:m1){
 }
 
 #################### PSD Based On Full Quadtree #################### 
+
 testdata <- read.table("testdata5000.txt")
 
 minx <- min(testdata$V1) #minimum coordinate x
@@ -308,6 +315,7 @@ abline(v=maxx, h=maxy)
 abline(v=minx+v1/2, h=miny+v2/2,col="red")
 
 ##### 4 Part Of The Quadtree #################### 
+
 nw <- function(dataset){
   nwdata <- dataset[which(
     dataset$V1 >= min(dataset$V1) &
@@ -349,6 +357,7 @@ se <- function(dataset){
 }
 
 ##### Data Decomposition Based On Full Quadtree #################### 
+
 quad <- function(dataset, h){
   quaddata <- matrix(list(), nrow = h, ncol=4^(h-1))
   quaddata[[1,1]] <- dataset
@@ -365,6 +374,7 @@ quad <- function(dataset, h){
 }
 
 ##### Generate Noisetree (only has count) #################### 
+
 noisetree <- function(dataset, h, te){
   # te - total epsilon
   # h - height of the tree 
@@ -391,6 +401,7 @@ noisetree <- function(dataset, h, te){
 }
 
 ##### Private Range Query For PSD ####################
+
 prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
   
   if(rangeminx < min(dataset$V1)){
@@ -468,6 +479,7 @@ prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
   edgegrids <- allgridsinvloved[-newx,]
   
 ########## corners grid
+  
   bl <- c()
   br <- c()
   tl <- c()
@@ -509,6 +521,7 @@ prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
   noisedcorners = trnoisecount+tlnoisecount+brnoisecount+blnoisecount
   
 ########## top grids
+  
   topgrids <- c()
   topnoisecount = 0
   for(j in 1:4^(h-1)){
@@ -558,6 +571,7 @@ prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
   foursidenoisecount = rightnoisecount+leftnoisecount+topnoisecount+botnoisecount
   
 ########## fully contained grids with minimun noised count (ONLY optimun path)
+  
   if(nrow(x) >= 4){
     tmp <- x[which(x[,1] != h),]
     if(!is.matrix(tmp)){
