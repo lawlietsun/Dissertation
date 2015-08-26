@@ -427,7 +427,8 @@ m <- sqrt(4^(h-1))
 gridv1 <- (max(testdata$V1) - min(testdata$V1))/m
 gridv2 <- (max(testdata$V2) - min(testdata$V2))/m
   
-prqpsd(rangeminx,rangemaxx,rangeminy,rangemaxy,testdata)
+prqpsd(rangeminx,rangemaxx,rangeminy,rangemaxy,testdata) #private
+orq(rangeminx,rangemaxx,rangeminy,rangemaxy,testdata) #original
 
 # private range query for psd 
 prqpsd <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
