@@ -46,23 +46,26 @@ orq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
     rangemaxy = maxy
   }
   
-  results <- dataset[which(dataset$V1 > rangeminx & dataset$V1 < rangemaxx & 
-                             dataset$V2 > rangeminy & dataset$V2 < rangemaxy),]
+  results <- dataset[which(dataset$V1 >= rangeminx & dataset$V1 <= rangemaxx & 
+                             dataset$V2 >= rangeminy & dataset$V2 <= rangemaxy),]
+  
   numberOfPoints <- nrow(results)
+  
   return(numberOfPoints)
 }
 
 #################### UG ####################
 
-testdata <- read.table("testdata5000.txt")
+testdata <- read.table("testdata100000.txt")
 
-e = 0.1 # epsilon
-a = 0.01 # very small portion of the total epsilon
+e = 0.9 # epsilon
+a = 0.1 # very small portion of the total epsilon
 N = nrow(testdata) + rlaplace(n = 1, mu = 0, b = 1/(a*e))  # estimate number of data points
 c = 10 # constant(can be changed)
 
 m <- sqrt(N*e/c) # number of grids in both coordinates
 m <- round(m,0) # 0 decimal places
+
 m
 
 minx <- min(testdata$V1) #minimum coordinate x
@@ -83,12 +86,20 @@ grids <- matrix(0,m,m)
 
 for(i in 1:m){
   for(j in 1:m){
-    grids[i,j] <- nrow(testdata[which(
+    if(i == 1 || j == 1){
+      grids[i,j] <- nrow(testdata[which(
+        testdata$V1 >= (minx + (i-1)*gridx) & 
+          testdata$V1 <= (minx + i*gridx) & 
+          testdata$V2 >= (miny + (j-1)*gridy) & 
+          testdata$V2 <= (miny + j*gridy)
+      ),])
+    }else{grids[i,j] <- nrow(testdata[which(
       testdata$V1 > (minx + (i-1)*gridx) & 
-        testdata$V1 < (minx + i*gridx) & 
+        testdata$V1 <= (minx + i*gridx) & 
         testdata$V2 > (miny + (j-1)*gridy) & 
-        testdata$V2 < (miny + j*gridy)
+        testdata$V2 <= (miny + j*gridy)
     ),])
+    }
   }
   print(i)
 }
@@ -157,8 +168,8 @@ prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
   }
   
   # topbound
+  toppoints = 0
   if(rangemaxy < maxy){
-    toppoints = 0
     for(x in gridminx:gridmaxx){
       y = gridmaxy + 1
       toppoints = toppoints + privatedataset[x,y]*((rangemaxy-(miny+gridmaxy*gridy))/gridy)
@@ -175,8 +186,8 @@ prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
   }
   
   # left
+  leftpoints = 0
   if(rangeminx > minx){
-    leftpoints = 0
     for(y in gridminy:gridmaxy){
       x = gridminx - 1
       leftpoints = leftpoints + privatedataset[x,y]*(((minx+gridminx*gridx)-rangeminx)/gridx)
@@ -184,8 +195,8 @@ prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
   }
   
   # right
+  rightpoints = 0
   if(rangemaxx < maxx){
-    rightpoints = 0
     for(y in gridminy:gridmaxy){
       x = gridmaxx + 1
       rightpoints = rightpoints + privatedataset[x,y]*((rangemaxx - (minx+gridmaxx*gridx))/gridx)
@@ -226,22 +237,56 @@ prq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,privatedataset){
   return(numberOfPoint)
 }
 
-##### Random Query 1 D/128 ~ D/64 ####################
+##### Random Query with spesific area ####################
 
-x <- runif(1, 0, N/128)
-y <- runif(1, 0, N/128)
+mkqry <- function(minarea, maxarea, numberOfQries){
+  randomquerues <- c()
+  while(is.null(nrow(randomquerues))){
+    randx <- sort(runif(2,minx,maxx))
+    randy <- sort(runif(2,miny,maxy))
+    if((randx[2]-randx[1])*(randy[2]-randy[1]) >= minarea &&
+      (randx[2]-randx[1])*(randy[2]-randy[1]) <= maxarea){
+      randomquerues <- rbind(randomquerues, c(randx,randy))
+    }
+  }
+  
+  while(nrow(randomquerues) < numberOfQries){
+    randx <- sort(runif(2,minx,maxx))
+    randy <- sort(runif(2,miny,maxy))
+    if((randx[2]-randx[1])*(randy[2]-randy[1]) >= minarea &&
+      (randx[2]-randx[1])*(randy[2]-randy[1]) <= maxarea){
+      randomquerues <- rbind(randomquerues, c(randx,randy))
+    }
+  }
+  
+  return(randomquerues)
+}
 
-randcoorminx <- runif(1,minx,maxx)
-randcoorminy <- runif(1,miny,maxy)
-randcoormaxx <- randcoorminx + x
-randcoormaxy <- randcoorminy + y
+totalarea <- (maxx-minx)*(maxy-miny)
+maxarea <- totalarea/2
+minarea <- totalarea/4
 
-randcoorminx = rangeminx
-randcoormaxx = rangemaxx
-randcoorminy = rangeminy
-randcoormaxy = rangemaxy
+n = 200 # number of queries wanna generate
+randboxes <- mkqry(minarea, maxarea, n)
+
+# plot the boxes
+plot(testdata, xlim=c(minx,maxx), ylim=c(miny,maxy))
+
+for(i in 1:nrow(randboxes)){
+  rect(randboxes[i,1], randboxes[i,3], randboxes[i,2], randboxes[i,4], border = "red")
+}
 
 ##### RelativeError ####################
+relativeError <- c()
+for(i in 1:nrow(randboxes)){
+  pa = prq(randboxes[i,1], randboxes[i,2], randboxes[i,3], randboxes[i,4],noisedgrids)
+  oa = orq(randboxes[i,1], randboxes[i,2], randboxes[i,3], randboxes[i,4],testdata)
+  p = 0.001*N
+  relativeError <- c(relativeError, (abs(pa-oa))/max(oa,p))
+}
+length(relativeError[which(relativeError < 10)])
+boxplot(relativeError[which(relativeError < 1)])
+
 
 pa = prq(randcoorminx,randcoormaxx,randcoorminy,randcoormaxy,noisedgrids)
 oa = orq(randcoorminx,randcoormaxx,randcoorminy,randcoormaxy,testdata)
