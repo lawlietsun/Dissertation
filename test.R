@@ -56,10 +56,10 @@ orq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
 
 #################### UG ####################
 
-testdata <- read.table("testdata100000.txt")
+testdata <- read.table("testdata1m.txt")
 
-e = 0.9 # epsilon
-a = 0.1 # very small portion of the total epsilon
+e = 0.1 # epsilon
+a = 0.01 # very small portion of the total epsilon
 N = nrow(testdata) + rlaplace(n = 1, mu = 0, b = 1/(a*e))  # estimate number of data points
 c = 10 # constant(can be changed)
 
@@ -284,15 +284,9 @@ for(i in 1:nrow(randboxes)){
   p = 0.001*N
   relativeError <- c(relativeError, (abs(pa-oa))/max(oa,p))
 }
-length(relativeError[which(relativeError < 10)])
-boxplot(relativeError[which(relativeError < 1)])
 
-
-pa = prq(randcoorminx,randcoormaxx,randcoorminy,randcoormaxy,noisedgrids)
-oa = orq(randcoorminx,randcoormaxx,randcoorminy,randcoormaxy,testdata)
-p = 0.001*N
-relativeError = (abs(pa-oa))/max(oa,p)
-relativeError
+plot(relativeError)
+boxplot(relativeError)
 
 ##### TEST ####################
 
