@@ -17,14 +17,18 @@ library(OOmisc) #rlaplace
 
 # random sample subset the data set
 dataset <- read.table("loc-gowalla_totalCheckins.txt")
-s <- sample(nrow(dataset), 100000)
-n <- dataset[s,]
+z <- dataset[which(dataset$V3 < 200),]
+z <- z[which(z$V3 > -90),]
+s <- sample(nrow(z), 1000000)
+n <- z[s,]
 n <- n[,3:4]
+max(n$V3)
+min(n$V3)
 plot(n)
 
 testdata <- n
 
-write.table(testdata, "testdata100000.txt", sep="\t", row.names = FALSE, col.names = FALSE)
+write.table(testdata, "testdata1m.txt", sep="\t", row.names = FALSE, col.names = FALSE)
 
 ##### Original Range Query ####################
 
@@ -58,15 +62,13 @@ orq <- function(rangeminx,rangemaxx,rangeminy,rangemaxy,dataset){
 
 testdata <- read.table("testdata1m.txt")
 
-e = 0.1 # epsilon
+e = 1 # epsilon
 a = 0.01 # very small portion of the total epsilon
 N = nrow(testdata) + rlaplace(n = 1, mu = 0, b = 1/(a*e))  # estimate number of data points
 c = 10 # constant(can be changed)
 
 m <- sqrt(N*e/c) # number of grids in both coordinates
 m <- round(m,0) # 0 decimal places
-
-m
 
 minx <- min(testdata$V1) #minimum coordinate x
 maxx <- max(testdata$V1) #maximum coordinate x
@@ -111,6 +113,12 @@ for(i in 1:m){
     noisedgrids[i,j] <- grids[i,j] + rlaplace(n = 1, mu = 0, b = 1/((1-a)*e))
   }
 }
+
+
+write.table(noisedgrids, "synopsisdata0.1.txt", sep=" ", row.names = FALSE, col.names = FALSE)
+write.table(noisedgrids, "synopsisdata1.txt", sep=" ", row.names = FALSE, col.names = FALSE)
+
+noisedgrids <- read.table("synopsisdata1.txt")
 
 # draw grids
 for(i in 0:m){
